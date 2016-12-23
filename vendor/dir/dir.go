@@ -7,13 +7,9 @@ import (
 )
 
 var (
-    IsDir = fmt.Errorf("this is a file")
-    IsFile = fmt.Errorf("this is a directory")
-    SkipDir = filepath.SkipDir
-    SkipFile = fmt.Errorf("skip this file")
+    Skip = filepath.SkipDir
     NotFound = fmt.Errorf("no such file or directory")
 )
-
 
 func Read(dirname string) ([]os.FileInfo, error) {
     f, err  := os.Open(dirname)
@@ -46,7 +42,7 @@ func Walk(path string, walkFn ...WalkFunc) error {
             err := walkFn[i](root, fi, nil)
             if err != nil {
                 switch err {
-                    case IsFile, IsDir, SkipDir, SkipFile:
+                    case Skip:
                         continue DIRS
                 }
                 return err

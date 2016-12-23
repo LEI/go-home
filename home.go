@@ -25,37 +25,46 @@ var (
     act string
     ignoreDirs = []string{".git", "lib"}
     // ignore = []string{"*.tpl", ".pkg"}
+    roles []string
 )
 
 func Usage(e int, msg ...interface{}) {
     if len(msg) > 0 {
         fmt.Fprintf(os.Stderr, "%s\n", msg...)
-        // os.Stderr.Write(fmt.Errorf(str, vars...))
+        // fmt.Fprintf(os.Stderr, "%s\n", optarg.UsageInfo)
     }
-    optarg.Usage() // SHort?
+    optarg.Usage()
     os.Exit(e)
 }
 
 func main() {
-    parseArgs()
-    // os.Args = []string{os.Args[0], "-s", "~/.dotfiles", "-t", "$HOME", "-d"}
-
+    roles = getOpts()
     // if debug {
     //     fmt.Printf("%s %s: %s -> %s\n", verbose, act, src, dst)
     // }
-    // fmt.Printf("%+v\n", flag.Args())
-
     // err := filepath.Walk(path, walkFn)
-    err := walk(src)
-    if err != nil {
-        log.Fatal(err)
-        // os.Exit(1)
+    if len(roles) > 0 {
+        // Usage(1, "Extra arguments: " + strings.Join(remain, " "))
+        for _, r := range roles {
+            err := walk(join(src, r))
+            if err != nil {
+                log.Fatal(err)
+            }
+        }
+    } else {
+        err := walk(src)
+        if err != nil {
+            log.Fatal(err)
+            // os.Exit(1)
+        }
     }
 }
 
-func parseArgs() {
-    // args := {}
-    optarg.Header("General")
+func getOpts() []string {
+    optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options]", os.Args[0]) // hdvstIR
+    optarg.HeaderFmt = "\n%s:"
+
+    optarg.Header("General options")
     optarg.Add("h", "help", "Displays this help", false)
     optarg.Add("d", "debug", "Check mode", false)
     optarg.Add("v", "verbose", "Print more (default to: 0)", false)
@@ -82,6 +91,7 @@ func parseArgs() {
 
             case "s":
                 src = opt.String()
+                // Prompt?
             case "t":
                 dst = opt.String()
 
@@ -93,13 +103,14 @@ func parseArgs() {
     if act == "" {
         Usage(1, "missing action: install or remove")
     }
-    if exists(src) != true {
+    if !exists(src) {
         Usage(1, src + ": source directory does not exist")
     }
-    if exists(dst) != true {
+    if !exists(dst) {
         Usage(1, dst + ": destination directory does not exist")
     }
-    // return args
+
+    return optarg.Remainder
 }
 
 func check(path string, info os.FileInfo, err error) error {
@@ -109,14 +120,14 @@ func check(path string, info os.FileInfo, err error) error {
     }
     if !info.IsDir() {
         // if verbose > 0 { fmt.Printf("Not a directory: %s\n", path) }
-        return dir.IsFile
+        return dir.Skip
     }
     name := info.Name()
     for _, i := range ignoreDirs {
         // if regexp.MustCompile(r).MatchString(p.Name())
         if name == i {
             // fmt.Println(name, "ignored")
-            return dir.SkipDir
+            return dir.Skip
         }
     }
     if strings.HasPrefix(name, "os_") {
@@ -127,7 +138,7 @@ func check(path string, info os.FileInfo, err error) error {
                 return err
             }
         }
-        return dir.SkipDir
+        return dir.Skip
     }
     return nil
 }
@@ -136,6 +147,9 @@ func visit(path string, info os.FileInfo, e error) error {
     if e != nil {
         return e
     }
+    // if exists(join(path, ".pkg")) {
+    //     fmt.Println(path, "READ PKG")
+    // }
     // d := join(path, info.Name())
     d, err := dir.Read(path)
     if err != nil {
