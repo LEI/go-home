@@ -16,16 +16,42 @@ import (
 // }
 
 const OS = runtime.GOOS
-var ignoreDirs = []string{".git", "lib"}
-// var sequence []dir.WalkFunc // []interface
 
 var (
     debug bool
     verbose = 0
     src = ""
     dst = os.Getenv("HOME")
-    action string
+    act string
+    ignoreDirs = []string{".git", "lib"}
+    // ignore []string{"*.tpl", ".pkg")
 )
+
+func Usage(e int, msg ...interface{}) {
+    if len(msg) > 0 {
+        fmt.Fprintf(os.Stderr, "%s\n", msg...)
+        // os.Stderr.Write(fmt.Errorf(str, vars...))
+    }
+    optarg.Usage() // SHort?
+    os.Exit(e)
+}
+
+func main() {
+    parseArgs()
+    // os.Args = []string{os.Args[0], "-s", "~/.dotfiles", "-t", "$HOME", "-d"}
+
+    // if debug {
+    //     fmt.Printf("%s %s: %s -> %s\n", verbose, act, src, dst)
+    // }
+    // fmt.Printf("%+v\n", flag.Args())
+
+    // err := filepath.Walk(path, walkFn)
+    err := walk(src)
+    if err != nil {
+        log.Fatal(err)
+        // os.Exit(1)
+    }
+}
 
 func parseArgs() {
     // args := {}
@@ -37,6 +63,7 @@ func parseArgs() {
     optarg.Header("Paths")
     optarg.Add("s", "source", "Source directory", src)
     optarg.Add("t", "target", "Target directory", dst)
+    // optarg.Add("i", "ignore", "Exclude path", ignore)
 
     optarg.Header("Actions")
     optarg.Add("I", "install", "", true)
@@ -45,9 +72,7 @@ func parseArgs() {
     for opt := range optarg.Parse() {
         switch opt.ShortName {
             case "h":
-                fmt.Printf("Help: %s", opt.Bool())
-                optarg.Usage()
-                os.Exit(0)
+                Usage(0)
             case "d":
                 debug = opt.Bool()
             case "v":
@@ -61,8 +86,18 @@ func parseArgs() {
                 dst = opt.String()
 
             case "I", "R":
-                action = opt.String()
+                act = opt.String()
         }
+    }
+
+    if act == "" {
+        Usage(1, "missing action: install or remove")
+    }
+    if exists(src) != true {
+        Usage(1, src + ": source directory does not exist")
+    }
+    if exists(dst) != true {
+        Usage(1, dst + ": destination directory does not exist")
     }
     // return args
 }
@@ -87,7 +122,6 @@ func check(path string, info os.FileInfo, err error) error {
     if strings.HasPrefix(name, "os_") {
         if name == "os_" + OS {
             // fmt.Println("filepath.Walk", path, checkDir)
-            fmt.Printf("Nested: %s\n", path)
             err := walk(path)
             if err != nil {
                 return err
@@ -107,21 +141,23 @@ func visit(path string, info os.FileInfo, e error) error {
     if err != nil {
         return err
     }
-    fmt.Printf("DIR %s -> %s\n", join(path), dst)
+    if verbose > 0  {
+        fmt.Printf("DIR %s\n", join(path))
+    }
     for _, fi := range d {
         // TODO ignore templates & cie
         s := join(path, fi.Name())
         t := join(dst, fi.Name())
-        err := link(s, t)
-        if err != nil {
-            return err
+        if verbose > 0  {
+            // fmt.Printf("%s <- %s\n", t, fi.Name())
+            fmt.Printf("ln -s %s %s\n", s, t)
         }
+        // err := os.Symlink(s, t)
+        // if err != nil {
+        //     return err
+        // }
+        // realpath, err := filepath.EvalSymlinks(t)
     }
-    return nil
-}
-
-func link(source string, target string) error {
-    fmt.Printf("Link %s to %s\n", source, target)
     return nil
 }
 
@@ -133,26 +169,17 @@ func walk(path string) error {
     // return nil
 }
 
-func join(paths ...string) string {
-    return filepath.Join(paths...)
+func exists(path string) bool {
+    if _, err := os.Stat(path); err != nil {
+        if os.IsNotExist(err) {
+            return false
+        }
+        fmt.Errorf("%s", err)
+        return false
+    }
+    return true
 }
 
-func main() {
-    parseArgs()
-
-    // dir.OS = OS
-    // dir.ignoreDirs = []string{".git", "lib"}
-    // os.Args = []string{os.Args[0], "-s", "~/.dotfiles", "-t", "$HOME", "-d"}
-
-    // if debug {
-    //     fmt.Printf("%s %s: %s -> %s\n", verbose, action, src, dst)
-    // }
-    // fmt.Printf("%+v\n", flag.Args())
-
-    // err := filepath.Walk(path, walkFn)
-    err := walk(src)
-    if err != nil {
-        log.Fatal(err)
-        os.Exit(1)
-    }
+func join(paths ...string) string {
+    return filepath.Join(paths...)
 }
