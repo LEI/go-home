@@ -145,7 +145,7 @@ func visit(path string, info os.FileInfo, e error) error {
         fmt.Printf("DIR %s\n", join(path))
     }
     for _, fi := range d {
-        // TODO ignore templates & cie
+        // TODO ignore templates with filepath.Ext(fi.Name())?
         s := join(path, fi.Name())
         t := join(dst, fi.Name())
         if verbose > 0  {
