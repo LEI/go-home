@@ -11,6 +11,7 @@ var (
     IsFile = fmt.Errorf("this is a directory")
     SkipDir = filepath.SkipDir
     SkipFile = fmt.Errorf("skip this file")
+    NotFound = fmt.Errorf("no such file or directory")
 )
 
 

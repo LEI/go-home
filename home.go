@@ -24,7 +24,7 @@ var (
     dst = os.Getenv("HOME")
     act string
     ignoreDirs = []string{".git", "lib"}
-    ignore []string{"*.tpl", ".pkg")
+    // ignore = []string{"*.tpl", ".pkg"}
 )
 
 func Usage(e int, msg ...interface{}) {
@@ -146,12 +146,11 @@ func visit(path string, info os.FileInfo, e error) error {
     }
     FILES:
     for _, fi := range d {
-        for _, i := range ignore {
-            switch filepath.Ext(fi.Name()) {
-                case "tpl":
-                    break FILES
-            }
+        switch filepath.Ext(fi.Name()) {
+            case ".tpl", ".pkg":
+                continue FILES
         }
+        // for _, i := range ignore { }
         s := join(path, fi.Name())
         t := join(dst, fi.Name())
         if verbose > 0  {
