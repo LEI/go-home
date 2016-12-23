@@ -14,7 +14,12 @@ import (
 const OS = runtime.GOOS
 var ignoreDirs = []string{".git", "lib"}
 
-func initArgs() {
+var debug bool
+var verbose=0
+var src, dst, action string
+
+func parseArgs() {
+    // args := {}
     optarg.Header("General")
     optarg.Add("h", "help", "Displays this help", false)
     optarg.Add("d", "debug", "Check mode", false)
@@ -27,15 +32,6 @@ func initArgs() {
     optarg.Header("Actions")
     optarg.Add("I", "install", "", true)
     optarg.Add("R", "remove", "", false)
-}
-
-func main() {
-    initArgs()
-    // os.Args = []string{os.Args[0], "-s", "~/.dotfiles", "-t", "$HOME", "-d"}
-
-    var debug bool
-    var verbose=0
-    var src, dst, action string
 
     for opt := range optarg.Parse() {
         switch opt.ShortName {
@@ -61,19 +57,7 @@ func main() {
                 action = opt.String()
         }
     }
-
-    // if len(optarg.Remainder) != 0 {
-    //     fmt.Errorf("Parse(): incorrect number of remaining arguments. Expected 2. got %d", len(Remainder))
-    // }
-
-    if debug {
-        fmt.Printf("%s %s: %s -> %s\n", verbose, action, src, dst)
-    }
-    // fmt.Printf("%+v\n", flag.Args())
-
-    // walkDir(src, visit)
-    err := walkDir(src, visitDir)
-    die(err)
+    // return args
 }
 
 func readDir(dirname string) ([]os.FileInfo, error) {
@@ -94,16 +78,10 @@ func readDir(dirname string) ([]os.FileInfo, error) {
 type WalkFunc func(path string, info os.FileInfo, err error) error
 
 func walkDir(path string, walkFn WalkFunc) error {
-    // root = path
-    // err := filepath.Walk(path, walkFn)
-    // return err
-
-    // d, err := os.Open(path)
-    // die(err)
-    // defer d.Close()
-    // p, err := d.Readdir(-1)
     p, err := readDir(path)
-    die(err)
+    if err != nil {
+        return err
+    }
 
     // DIRS:
     for _, fi := range p {
@@ -112,7 +90,6 @@ func walkDir(path string, walkFn WalkFunc) error {
         if err != nil {
             switch err {
                 case filepath.SkipDir:
-                    // err = nil
                     break
                 default:
                     return err
@@ -124,8 +101,11 @@ func walkDir(path string, walkFn WalkFunc) error {
 
 func visitDir(path string, info os.FileInfo, err error) error {
     // fmt.Printf("%s?\n", path)
-    die(err)
+    if err != nil {
+        return err
+    }
     if !info.IsDir() {
+        // if verbose > 0 { fmt.Printf("\tFile: %s\n", path) }
         return nil // fmt.Errorf("Not a directory: %s", path)
     }
     // if root == path {
@@ -137,7 +117,7 @@ func visitDir(path string, info os.FileInfo, err error) error {
         // if regexp.MustCompile(r).MatchString(p.Name())
         if name == i {
             // fmt.Println(name, "ignored")
-            return filepath.SkipDir // fmt.Errorf("Ignored directory: %s", path)
+            return filepath.SkipDir
         }
     }
     if strings.HasPrefix(name, "os_") {
@@ -146,15 +126,9 @@ func visitDir(path string, info os.FileInfo, err error) error {
             fmt.Printf("Nested: %s\n", path)
             walkDir(path, visitDir)
         }
-        return filepath.SkipDir // fmt.Errorf("Matched prefix: %s", name)
+        return filepath.SkipDir
     }
     fmt.Printf("Visited: %s\n", path)
-    // if strings.HasPrefix(name, prefix) {
-    //     // FIXME name -> fullPath
-    //     walkDir(name, prefix) // Recursive prefix, handle empty!
-    // } else {
-    //     fmt.Println(name)
-    // }
     return nil
 }
 
@@ -163,4 +137,18 @@ func die(err error) {
         log.Fatal(err)
         os.Exit(1)
     }
+}
+
+func main() {
+    parseArgs()
+    // os.Args = []string{os.Args[0], "-s", "~/.dotfiles", "-t", "$HOME", "-d"}
+
+    if debug {
+        fmt.Printf("%s %s: %s -> %s\n", verbose, action, src, dst)
+    }
+    // fmt.Printf("%+v\n", flag.Args())
+
+    // err := filepath.Walk(path, walkFn)
+    err := walkDir(src, visitDir)
+    die(err)
 }
