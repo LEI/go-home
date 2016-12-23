@@ -1,22 +1,31 @@
 package main
 
 import (
-    "path/filepath"
+    "fmt"
     "log"
     "os"
-    "fmt"
+    "path/filepath"
     // "regexp"
     "runtime"
     "strings"
     "github.com/jteeuwen/go-pkg-optarg"
+    "dir"
 )
+
+// type Walk interface {
+// }
 
 const OS = runtime.GOOS
 var ignoreDirs = []string{".git", "lib"}
+// var sequence []dir.WalkFunc // []interface
 
-var debug bool
-var verbose=0
-var src, dst, action string
+var (
+    debug bool
+    verbose = 0
+    src = ""
+    dst = os.Getenv("HOME")
+    action string
+)
 
 func parseArgs() {
     // args := {}
@@ -26,8 +35,8 @@ func parseArgs() {
     optarg.Add("v", "verbose", "Print more (default to: 0)", false)
 
     optarg.Header("Paths")
-    optarg.Add("s", "source", "Source directory", "~/.dotfiles")
-    optarg.Add("t", "target", "Target directory", "$HOME")
+    optarg.Add("s", "source", "Source directory", src)
+    optarg.Add("t", "target", "Target directory", dst)
 
     optarg.Header("Actions")
     optarg.Add("I", "install", "", true)
@@ -51,104 +60,99 @@ func parseArgs() {
             case "t":
                 dst = opt.String()
 
-            case "I":
-                action = opt.String()
-            case "R":
+            case "I", "R":
                 action = opt.String()
         }
     }
     // return args
 }
 
-func readDir(dirname string) ([]os.FileInfo, error) {
-    f, err  := os.Open(dirname)
-    if err != nil {
-        return nil, err
-    }
-    // defer?
-    paths, err := f.Readdir(-1) // names
-    f.Close()
-    if err != nil {
-        return nil, err
-    }
-    // sort.Strings(paths)
-    return paths, nil
-}
-
-type WalkFunc func(path string, info os.FileInfo, err error) error
-
-func walkDir(path string, walkFn WalkFunc) error {
-    p, err := readDir(path)
-    if err != nil {
-        return err
-    }
-
-    // DIRS:
-    for _, fi := range p {
-        root := filepath.Join(path, fi.Name())
-        err := walkFn(root, fi, nil)
-        if err != nil {
-            switch err {
-                case filepath.SkipDir:
-                    break
-                default:
-                    return err
-            }
-        }
-    }
-    return nil
-}
-
-func visitDir(path string, info os.FileInfo, err error) error {
+func check(path string, info os.FileInfo, err error) error {
     // fmt.Printf("%s?\n", path)
     if err != nil {
         return err
     }
     if !info.IsDir() {
-        // if verbose > 0 { fmt.Printf("\tFile: %s\n", path) }
-        return nil // fmt.Errorf("Not a directory: %s", path)
+        // if verbose > 0 { fmt.Printf("Not a directory: %s\n", path) }
+        return dir.IsFile
     }
-    // if root == path {
-    //     return nil
-    // }
-
     name := info.Name()
     for _, i := range ignoreDirs {
         // if regexp.MustCompile(r).MatchString(p.Name())
         if name == i {
             // fmt.Println(name, "ignored")
-            return filepath.SkipDir
+            return dir.SkipDir
         }
     }
     if strings.HasPrefix(name, "os_") {
         if name == "os_" + OS {
             // fmt.Println("filepath.Walk", path, checkDir)
             fmt.Printf("Nested: %s\n", path)
-            walkDir(path, visitDir)
+            err := walk(path)
+            if err != nil {
+                return err
+            }
         }
-        return filepath.SkipDir
+        return dir.SkipDir
     }
-    fmt.Printf("Visited: %s\n", path)
     return nil
 }
 
-func die(err error) {
-    if err != nil {
-        log.Fatal(err)
-        os.Exit(1)
+func visit(path string, info os.FileInfo, e error) error {
+    if e != nil {
+        return e
     }
+    // d := join(path, info.Name())
+    d, err := dir.Read(path)
+    if err != nil {
+        return err
+    }
+    fmt.Printf("DIR %s -> %s\n", join(path), dst)
+    for _, fi := range d {
+        // TODO ignore templates & cie
+        s := join(path, fi.Name())
+        t := join(dst, fi.Name())
+        err := link(s, t)
+        if err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
+func link(source string, target string) error {
+    fmt.Printf("Link %s to %s\n", source, target)
+    return nil
+}
+
+func walk(path string) error {
+    return dir.Walk(path, check, visit)
+    // if err != nil {
+    //     return err
+    // }
+    // return nil
+}
+
+func join(paths ...string) string {
+    return filepath.Join(paths...)
 }
 
 func main() {
     parseArgs()
+
+    // dir.OS = OS
+    // dir.ignoreDirs = []string{".git", "lib"}
     // os.Args = []string{os.Args[0], "-s", "~/.dotfiles", "-t", "$HOME", "-d"}
 
-    if debug {
-        fmt.Printf("%s %s: %s -> %s\n", verbose, action, src, dst)
-    }
+    // if debug {
+    //     fmt.Printf("%s %s: %s -> %s\n", verbose, action, src, dst)
+    // }
     // fmt.Printf("%+v\n", flag.Args())
 
     // err := filepath.Walk(path, walkFn)
-    err := walkDir(src, visitDir)
-    die(err)
+    err := walk(src)
+    if err != nil {
+        log.Fatal(err)
+        os.Exit(1)
+    }
 }
