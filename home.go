@@ -25,7 +25,7 @@ var (
     act string
     ignoreDirs = []string{".git", "lib"}
     // ignore = []string{"*.tpl", ".pkg"}
-    roles []string
+    // roles []string
 )
 
 func Usage(e int, msg ...interface{}) {
@@ -38,7 +38,7 @@ func Usage(e int, msg ...interface{}) {
 }
 
 func main() {
-    remain = getOpts()
+    remain := getOpts()
     // if debug {
     //     fmt.Printf("%s %s: %s -> %s\n", verbose, act, src, dst)
     // }
