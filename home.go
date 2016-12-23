@@ -38,14 +38,14 @@ func Usage(e int, msg ...interface{}) {
 }
 
 func main() {
-    roles = getOpts()
+    remain = getOpts()
     // if debug {
     //     fmt.Printf("%s %s: %s -> %s\n", verbose, act, src, dst)
     // }
     // err := filepath.Walk(path, walkFn)
-    if len(roles) > 0 {
+    if len(remain) > 0 {
         // Usage(1, "Extra arguments: " + strings.Join(remain, " "))
-        for _, r := range roles {
+        for _, r := range remain {
             err := walk(join(src, r))
             if err != nil {
                 log.Fatal(err)
@@ -61,7 +61,7 @@ func main() {
 }
 
 func getOpts() []string {
-    optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options]", os.Args[0]) // hdvstIR
+    optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options] [roles...]", os.Args[0]) // <action> hdvstIR
     optarg.HeaderFmt = "\n%s:"
 
     optarg.Header("General options")
@@ -95,8 +95,8 @@ func getOpts() []string {
             case "t":
                 dst = opt.String()
 
-            case "I", "R":
-                act = opt.String()
+            // case "I", "R":
+            //     act = opt.String()
         }
     }
 
