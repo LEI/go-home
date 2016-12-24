@@ -6,10 +6,10 @@ import (
     "os"
     "path/filepath"
     // "regexp"
+    "dir"
+    "github.com/jteeuwen/go-pkg-optarg"
     "runtime"
     "strings"
-    "github.com/jteeuwen/go-pkg-optarg"
-    "dir"
 )
 
 // type Walk interface {
@@ -18,11 +18,11 @@ import (
 const OS = runtime.GOOS
 
 var (
-    debug bool
-    verbose = 0
-    src = ""
-    dst = os.Getenv("HOME")
-    act string
+    debug      bool
+    verbose    = 0
+    src        = ""
+    dst        = os.Getenv("HOME")
+    act        string
     ignoreDirs = []string{".git", "lib"}
     // ignore = []string{"*.tpl", ".pkg"}
     // roles []string
@@ -80,23 +80,23 @@ func getOpts() []string {
 
     for opt := range optarg.Parse() {
         switch opt.ShortName {
-            case "h":
-                Usage(0)
-            case "d":
-                debug = opt.Bool()
-            case "v":
-                if opt.Bool() {
-                    verbose += 1
-                }
+        case "h":
+            Usage(0)
+        case "d":
+            debug = opt.Bool()
+        case "v":
+            if opt.Bool() {
+                verbose += 1
+            }
 
-            case "s":
-                src = opt.String()
-                // Prompt?
-            case "t":
-                dst = opt.String()
+        case "s":
+            src = opt.String()
+            // Prompt?
+        case "t":
+            dst = opt.String()
 
-            case "I", "R":
-                act = opt.String()
+        case "I", "R":
+            act = opt.String()
         }
     }
 
@@ -131,7 +131,7 @@ func check(path string, info os.FileInfo, err error) error {
         }
     }
     if strings.HasPrefix(name, "os_") {
-        if name == "os_" + OS {
+        if name == "os_"+OS {
             // fmt.Println("filepath.Walk", path, checkDir)
             err := walk(path)
             if err != nil {
@@ -155,19 +155,19 @@ func visit(path string, info os.FileInfo, e error) error {
     if err != nil {
         return err
     }
-    if verbose > 0  {
+    if verbose > 0 {
         fmt.Printf("DIR %s\n", join(path))
     }
     FILES:
     for _, fi := range d {
         switch filepath.Ext(fi.Name()) {
-            case ".tpl", ".pkg":
-                continue FILES
+        case ".tpl", ".pkg":
+            continue FILES
         }
         // for _, i := range ignore { }
         s := join(path, fi.Name())
         t := join(dst, fi.Name())
-        if verbose > 0  {
+        if verbose > 0 {
             // fmt.Printf("%s <- %s\n", t, fi.Name())
             fmt.Printf("ln -s %s %s\n", s, t)
         }
@@ -197,7 +197,7 @@ func exists(path string) bool {
         // if os.IsNotExist(err) {
         //     return false
         // }
-        msg := strings.Replace(err.Error(), "stat ", os.Args[0] + ": ", 1)
+        msg := strings.Replace(err.Error(), "stat ", os.Args[0]+": ", 1)
         fmt.Fprintf(os.Stderr, "%s\n", msg)
         return false
     }
