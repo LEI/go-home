@@ -197,7 +197,7 @@ func exists(path string) bool {
         if os.IsNotExist(err) {
             return false
         }
-        fmt.Errorf("%s", err)
+        fmt.Println(fmt.Errorf("%s", err))
         return false
     }
     return true
