@@ -104,10 +104,10 @@ func getOpts() []string {
         Usage(1, "missing action: install or remove")
     }
     if !exists(src) {
-        Usage(1, src + ": source directory does not exist")
+        Usage(1)
     }
     if !exists(dst) {
-        Usage(1, dst + ": destination directory does not exist")
+        Usage(1)
     }
 
     return optarg.Remainder
@@ -194,10 +194,11 @@ func join(paths ...string) string {
 
 func exists(path string) bool {
     if _, err := os.Stat(path); err != nil {
-        if os.IsNotExist(err) {
-            return false
-        }
-        fmt.Println(fmt.Errorf("%s", err))
+        // if os.IsNotExist(err) {
+        //     return false
+        // }
+        msg := strings.Replace(err.Error(), "stat ", os.Args[0] + ": ", 1)
+        fmt.Fprintf(os.Stderr, "%s\n", msg)
         return false
     }
     return true
