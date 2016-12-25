@@ -7,13 +7,6 @@ import (
     // "reflect"
 )
 
-// type OptArg interface {
-//     Key() string
-//     // Parse(interface{})
-//     Set()
-//     Type() string
-// }
-
 type Option struct {
     Name        string
     ShortName   string
@@ -23,9 +16,6 @@ type Option struct {
     parse       func(*optarg.Option)
     // SetOpt(shortname string, name string, description string, defaultvalue interface{})
     // *optarg.Option
-}
-func (o *Option) Key() string {
-    return o.ShortName
 }
 func (o *Option) Set() {
     optarg.Add(o.ShortName, o.Name, o.Description, o.defaultval)
@@ -40,6 +30,18 @@ type Header struct {
 }
 func (o *Header) Set() {
     optarg.Header(o.Text)
+}
+
+func getOpts(opts []interface{}) []string {
+    optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options] [roles...]", os.Args[0]) // <action> hdvstIR
+    optarg.HeaderFmt = "\n%s:"
+
+    oMap := setOpts(opts)
+    for opt := range optarg.Parse() {
+        oMap[opt.ShortName].(*Option).Parse(opt)
+    }
+
+    return optarg.Remainder
 }
 
 func setOpts(opts []interface{}) map[string]interface{} {
@@ -57,18 +59,6 @@ func setOpts(opts []interface{}) map[string]interface{} {
         }
     }
     return oMap
-}
-
-func getOpts(opts []interface{}) []string {
-    optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options] [roles...]", os.Args[0]) // <action> hdvstIR
-    optarg.HeaderFmt = "\n%s:"
-
-    oMap := setOpts(opts)
-    for opt := range optarg.Parse() {
-        oMap[opt.ShortName].(*Option).Parse(opt)
-    }
-
-    return optarg.Remainder
 }
 
 func usage(e int, msg ...interface{}) {
