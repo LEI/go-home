@@ -73,7 +73,7 @@ var opts = []interface{} {
             Description: "",
             defaultval: true,
             parse: func(opt *optarg.Option) {
-                act = opt.String()
+                if opt.Bool() { act = "install" }
         }},
         &Option{
             ShortName: "R",
@@ -81,6 +81,6 @@ var opts = []interface{} {
             Description: "",
             defaultval: false,
             parse: func(opt *optarg.Option) {
-                act = opt.String()
+                if opt.Bool() { act = "remove" }
         }},
     }

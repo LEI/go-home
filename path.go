@@ -36,9 +36,8 @@ func readDir(dirname string) ([]os.FileInfo, error) {
     if err != nil {
         return nil, err
     }
-    // defer?
+    defer f.Close()
     paths, err := f.Readdir(-1) // names
-    f.Close()
     if err != nil {
         return nil, err
     }

@@ -4,13 +4,14 @@ import (
     "fmt"
     "os"
     "path/filepath"
+    "packages"
     // "regexp"
     "strings"
 )
 
 var (
-    // visited    = make(map[string]map[string]File)
-    visited    = make(map[string]Role)
+    // visited    = make(map[string]map[string]packages.File)
+    visited    = make(map[string]packages.Role)
     ignoreDirs = []string{".git", "lib"}
     onlyDirs   []string
     // ignore = []string{"*.tpl", ".pkg"}
@@ -19,14 +20,15 @@ var (
 
 func main() {
     onlyDirs = getOpts(opts)
-    if act == "" {
+    switch false {
+    case exists(src), exists(dst):
+        usage(1)
+    }
+    switch act {
+    // case "install"
+    // case "remove"
+    case "":
         usage(1, "missing action: install or remove")
-    }
-    if !exists(src) {
-        usage(1)
-    }
-    if !exists(dst) {
-        usage(1)
     }
     // err := filepath.Walk(path, walkFn)
     err := walk(src)
@@ -41,9 +43,12 @@ func main() {
     }
     for name, role := range visited {
         if verbose > 1 { fmt.Println("ROLE", strings.ToUpper(name)) }
-        err := role.Play()
-        if err != nil {
-            logFatal(err)
+        switch act {
+        case "install":
+            err := role.Sync()
+            if err != nil {
+                logFatal(err)
+            }
         }
     }
 }
@@ -93,15 +98,12 @@ func visit(path string, info os.FileInfo, err error) error {
     if err != nil {
         return err
     }
-    role := Role{
+    role := packages.Role{
         Name: filepath.Base(path),
         Path: path,
-        Files: []File{},
+        Files: []packages.File{},
     }
-    // if verbose > 0 {
-    //     fmt.Printf("ROLE: %v\n", role)
-    // }
-    // err = explore(dir, found, role)
+    // if verbose > 0 { fmt.Printf("ROLE: %v\n", role) }
     err = role.Explore(path, found)
     if err != nil {
         return err
@@ -110,8 +112,8 @@ func visit(path string, info os.FileInfo, err error) error {
     return nil
 }
 
-func found(path string, fi os.FileInfo, role *Role) error {
-    role.Files = append(role.Files, File{
+func found(path string, fi os.FileInfo, role *packages.Role) error {
+    role.Files = append(role.Files, packages.File{
         Name: fi.Name(),
         Dest: filepath.Join(strings.Replace(path, role.Path, dst, 1), fi.Name()),
         Source: filepath.Join(path, fi.Name()),
