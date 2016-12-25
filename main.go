@@ -36,27 +36,20 @@ func main() {
         // os.Exit(1)
     }
     if len(onlyDirs) > 0 && len(visited) == 0 {
-        warn("%s/{%v}: no such role", src, strings.Join(onlyDirs, ","))
+        logErr("%s/{%v}: no such role", src, strings.Join(onlyDirs, ","))
     } else if len(visited) == 0 {
-        warn("%s: no such role", src)
+        logErr("%s: no such role", src)
     }
     for name, role := range visited {
         if verbose > 1 { fmt.Println("ROLE", strings.ToUpper(name)) }
-        for _, f := range role.Files {
-            if f.IsLinked() {
-                fmt.Printf("%s: %s already linked!\n", name+"\\"+f.Name)
-            } else if f.IsLink() {
-                fmt.Printf("%s: %s already linked to %s\n", name+"\\"+f.Name, f.Dest, f.Link)
-            } else if f.Exists() {
-                fmt.Printf("%s: %s already exists\n", name+"\\"+f.Name, f.Dest)
-            } else {
-                fmt.Printf("%s: %s does not exists!\n", name+"\\"+f.Name, f.Dest)
-            }
+        err := role.Play()
+        if err != nil {
+            logFatal(err)
         }
     }
 }
 
-func logErr(err error, replace ...string) error {
+func newErr(err error, replace ...string) error {
     msg := err.Error()
     // if len(replace) == 0 {
     //     replace = []string{"stat "}
@@ -68,10 +61,10 @@ func logErr(err error, replace ...string) error {
 }
 
 func logFatal(err error, replace ...string) {
-    log.Fatal(logErr(err, replace...))
+    log.Fatal(newErr(err, replace...))
 }
 
-func warn(f string, args ...interface{}) {
+func logErr(f string, args ...interface{}) {
     fmt.Fprintf(os.Stderr, f+"\n", args...)
 }
 
