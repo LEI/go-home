@@ -120,7 +120,7 @@ func main() {
 }
 
 func warn(f string, args ...interface{}) {
-    fmt.Fprintf(os.Stderr, f, args...)
+    fmt.Fprintf(os.Stderr, f+"\n", args...)
 }
 
 func walk(dir string) error {
