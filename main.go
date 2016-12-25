@@ -119,6 +119,10 @@ func main() {
     }
 }
 
+func warn(f string, args ...interface{}) {
+    fmt.Fprintf(os.Stderr, f, args...)
+}
+
 func walk(dir string) error {
     if !filepath.IsAbs(dir) {
         return fmt.Errorf("%s is not absolute", dir)
@@ -230,7 +234,7 @@ func found(path string, fi os.FileInfo, role string) error {
             return err
         }
     } else {
-        fmt.Println(fmt.Errorf("stat %s: file or directory already exists", t))
+        warn("stat %s: file or directory already exists", t)
     }
     if verbose > 0 {
         // fmt.Printf("%s <- %s\n", t, fi.Name())
