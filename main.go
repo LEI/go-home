@@ -31,32 +31,6 @@ func main() {
 
 type VisitFunc func(string, os.FileInfo, int) error
 
-func basePath(path string, n int) string {
-    sep := string(os.PathSeparator) // strconv.Itoa()
-    p := strings.Split(path, sep)
-    n = len(p) - n
-    return strings.Join(p[:n], sep)
-}
-
-func found(dir string, fi os.FileInfo, lvl int) error {
-    s := filepath.Join(dir, fi.Name())
-    t := strings.Replace(s, basePath(dir, lvl), dst, 1)
-    if verbose > 0 {
-        // fmt.Printf("%s <- %s\n", t, fi.Name())
-        fmt.Printf("ln -s %s %s\n", s, t)
-    }
-    // err := os.Symlink(s, t)
-    // if err != nil {
-    //     return err
-    // }
-    // realpath, err := filepath.EvalSymlinks(t)
-    return nil
-}
-
-func trimPath(p string, n int) (string, error) {
-    return p, nil
-}
-
 func walk(dir string) error {
     if !filepath.IsAbs(dir) {
         return fmt.Errorf("%s is not absolute", dir)
@@ -117,9 +91,9 @@ func visit(dir string, info os.FileInfo, err error) error {
     return nil
 }
 
-func explore(dir string, fn VisitFunc, lvl int) error {
+func explore(dir string, fn VisitFunc, n int) error {
     if verbose > 0 {
-        fmt.Printf("DIR %d  %s\n", lvl, dir)
+        fmt.Printf("DIR %d  %s\n", n, dir)
     }
     d, err := ReadDir(dir)
     if err != nil {
@@ -132,14 +106,29 @@ func explore(dir string, fn VisitFunc, lvl int) error {
             continue FILES
         }
         if fi.IsDir() { // TODO check empty?
-            lvl++
-            explore(filepath.Join(dir, fi.Name()), fn, lvl)
+            n++
+            explore(filepath.Join(dir, fi.Name()), fn, n)
         } else {
-            err = fn(dir, fi, lvl)
+            err = fn(dir, fi, n)
             if err != nil {
                 return err
             }
         }
     }
+    return nil
+}
+
+func found(dir string, fi os.FileInfo, n int) error {
+    s := filepath.Join(dir, fi.Name())
+    t := strings.Replace(s, basePath(dir, n), dst, 1)
+    if verbose > 0 {
+        // fmt.Printf("%s <- %s\n", t, fi.Name())
+        fmt.Printf("ln -s %s %s\n", s, t)
+    }
+    // err := os.Symlink(s, t)
+    // if err != nil {
+    //     return err
+    // }
+    // realpath, err := filepath.EvalSymlinks(t)
     return nil
 }
