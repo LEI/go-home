@@ -4,16 +4,12 @@ import (
     "fmt"
     "log"
     "os"
-    "path/filepath"
+    // "path/filepath"
     // "regexp"
-    "dir"
     "github.com/jteeuwen/go-pkg-optarg"
     "runtime"
     "strings"
 )
-
-// type Walk interface {
-// }
 
 const OS = runtime.GOOS
 
@@ -35,29 +31,6 @@ func Usage(e int, msg ...interface{}) {
     }
     optarg.Usage()
     os.Exit(e)
-}
-
-func main() {
-    remain := getOpts()
-    // if debug {
-    //     fmt.Printf("%s %s: %s -> %s\n", verbose, act, src, dst)
-    // }
-    // err := filepath.Walk(path, walkFn)
-    if len(remain) > 0 {
-        // Usage(1, "Extra arguments: " + strings.Join(remain, " "))
-        for _, r := range remain {
-            err := walk(join(src, r))
-            if err != nil {
-                log.Fatal(err)
-            }
-        }
-    } else {
-        err := walk(src)
-        if err != nil {
-            log.Fatal(err)
-            // os.Exit(1)
-        }
-    }
 }
 
 func getOpts() []string {
@@ -113,6 +86,14 @@ func getOpts() []string {
     return optarg.Remainder
 }
 
+func walk(path string) error {
+    return WalkDir(path, check, visit)
+    // if err != nil {
+    //     return err
+    // }
+    // return nil
+}
+
 func check(path string, info os.FileInfo, err error) error {
     // fmt.Printf("%s?\n", path)
     if err != nil {
@@ -120,14 +101,14 @@ func check(path string, info os.FileInfo, err error) error {
     }
     if !info.IsDir() {
         // if verbose > 0 { fmt.Printf("Not a directory: %s\n", path) }
-        return dir.Skip
+        return Skip
     }
     name := info.Name()
     for _, i := range ignoreDirs {
         // if regexp.MustCompile(r).MatchString(p.Name())
         if name == i {
             // fmt.Println(name, "ignored")
-            return dir.Skip
+            return Skip
         }
     }
     if strings.HasPrefix(name, "os_") {
@@ -138,7 +119,7 @@ func check(path string, info os.FileInfo, err error) error {
                 return err
             }
         }
-        return dir.Skip
+        return Skip
     }
     return nil
 }
@@ -151,7 +132,7 @@ func visit(path string, info os.FileInfo, e error) error {
     //     fmt.Println(path, "READ PKG")
     // }
     // d := join(path, info.Name())
-    d, err := dir.Read(path)
+    d, err := ReadDir(path)
     if err != nil {
         return err
     }
@@ -160,7 +141,7 @@ func visit(path string, info os.FileInfo, e error) error {
     }
     FILES:
     for _, fi := range d {
-        switch filepath.Ext(fi.Name()) {
+        switch ext(fi.Name()) {
         case ".tpl", ".pkg":
             continue FILES
         }
@@ -180,26 +161,25 @@ func visit(path string, info os.FileInfo, e error) error {
     return nil
 }
 
-func walk(path string) error {
-    return dir.Walk(path, check, visit)
-    // if err != nil {
-    //     return err
+func main() {
+    remain := getOpts()
+    // if debug {
+    //     fmt.Printf("%s %s: %s -> %s\n", verbose, act, src, dst)
     // }
-    // return nil
-}
-
-func join(paths ...string) string {
-    return filepath.Join(paths...)
-}
-
-func exists(path string) bool {
-    if _, err := os.Stat(path); err != nil {
-        // if os.IsNotExist(err) {
-        //     return false
-        // }
-        msg := strings.Replace(err.Error(), "stat ", os.Args[0]+": ", 1)
-        fmt.Fprintf(os.Stderr, "%s\n", msg)
-        return false
+    // err := filepath.Walk(path, walkFn)
+    if len(remain) > 0 {
+        // Usage(1, "Extra arguments: " + strings.Join(remain, " "))
+        for _, r := range remain {
+            err := walk(join(src, r))
+            if err != nil {
+                log.Fatal(err)
+            }
+        }
+    } else {
+        err := walk(src)
+        if err != nil {
+            log.Fatal(err)
+            // os.Exit(1)
+        }
     }
-    return true
 }
