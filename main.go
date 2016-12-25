@@ -80,10 +80,6 @@ func walk(dir string) error {
         return fmt.Errorf("%s is not absolute", dir)
     }
     return walkDir(dir, check, visit)
-    // if err != nil {
-    //     return err
-    // }
-    // return nil
 }
 
 func check(dir string, info os.FileInfo, err error) error {
@@ -143,16 +139,6 @@ func explore(path string, fn VisitFunc, role string) error {
     if err != nil {
         return err
     }
-    // if len(d) == 0 {
-    //     fi, err := os.Stat(path)
-    //     if err != nil {
-    //         return err
-    //     }
-    //     err = fn(path, fi, role)
-    //     if err != nil {
-    //         return err
-    //     }
-    // }
     FILES:
     for _, fi := range d {
         switch filepath.Ext(fi.Name()) {
@@ -172,51 +158,11 @@ func explore(path string, fn VisitFunc, role string) error {
 }
 
 func found(path string, fi os.FileInfo, role string) error {
+    base := filepath.Join(src, role)
     name := fi.Name()
     s := filepath.Join(path, name)
-    // t := strings.Replace(s, basePath(dir, n), dst, 1)
-    base := filepath.Join(src, role)
-    t := filepath.Join(strings.Replace(path, base, dst, 1), name)
+    t := strings.Replace(path, base, dst, 1)
+    t = filepath.Join(t, name)
     visited[role].Files[s] = File{Name: name, Dest: t}
-        // Link: link,
-        // Mode: int64(tStat.Mode()),
-        // Stat: tStat,
-    // tStat, err := os.Stat(t)
-    // if err != nil && !os.IsNotExist(err) {
-    //     return logErr(err, "stat ")
-    // }
-    // if err == nil {
-    //     // if link == t {
-    //     //     owned = true
-    //     // }
-    // }
-    // if tStat != nil {
-    //     fmt.Printf(">> %v\n", link)
-    // }
-
-    // link := ""
-    // if tStat != nil {
-    //     link, err := filepath.EvalSymlinks(t)
-    //     if err != nil {
-    //         return err
-    //     }
-    //     if t != link {
-    //         warn("%s: %s already linked to %s", os.Args[0], t, link)
-    //     } else if t == link {
-    //         warn("%s: %s already owned", os.Args[0], t)
-    //     } else {
-    //         warn("%s: %s already exists", os.Args[0], t)
-    //     }
-    // }
-
-    // targetFile := File{name: name, dest: t}
-    // fileMap[s]
-
-
-    // err := os.Symlink(s, t)
-    // if err != nil {
-    //     return err
-    // }
-    // realpath, err := filepath.EvalSymlinks(t)
     return nil
 }
