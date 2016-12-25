@@ -37,6 +37,7 @@ func found(dir string, fi os.FileInfo, lvl int) error {
     // base := dir
     // for i := 0; i < lvl; i++ {
     //     base, _ := filepath.Split(base)
+    //     // strings.Replace(base, "/*$", "", -1)
     //     if base == "" {
     //         return fmt.Errorf("invalid base path")
     //     }
@@ -45,9 +46,8 @@ func found(dir string, fi os.FileInfo, lvl int) error {
 
     s := join(dir, fi.Name())
     // t := join(path.Split(dir), ..., fi.Name())
-    t := strings.Replace(s, base, dst, 1)
-    // t := strings.Replace(s, "/*$", "", -1)
-    // t := join(dst, fi.Name())
+    // t := strings.Replace(s, base, dst, 1)
+    t := join(dst, fi.Name())
     if verbose > 0 {
         // fmt.Printf("%s <- %s\n", t, fi.Name())
         fmt.Printf("ln -s %s %s\n", s, t)
