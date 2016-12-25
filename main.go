@@ -10,7 +10,8 @@ import (
 )
 
 var (
-    visited    = make(map[string]map[string]File)
+    // visited    = make(map[string]map[string]File)
+    visited    = make(map[string]Role)
     ignoreDirs = []string{".git", "lib"}
     onlyDirs   []string
     // ignore = []string{"*.tpl", ".pkg"}
@@ -176,9 +177,10 @@ func found(path string, fi os.FileInfo, role string) error {
     base := filepath.Join(src, role)
     t := filepath.Join(strings.Replace(path, base, dst, 1), name)
     if visited[role] == nil {
-        visited[role] = make(map[string]File)
+        visited[role] = Role{Name: role, Files: make(map[string]File)}
+        // visited[role] = make(map[string]File)
     }
-    visited[role][s] = File{Name: name, Dest: t}
+    visited[role].Files[s] = File{Name: name, Dest: t}
         // Link: link,
         // Mode: int64(tStat.Mode()),
         // Stat: tStat,
