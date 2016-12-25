@@ -4,6 +4,7 @@ import (
     "fmt"
     "log"
     "os"
+    "github.com/jteeuwen/go-pkg-optarg"
     "path/filepath"
     // "regexp"
     "runtime"
@@ -13,14 +14,65 @@ import (
 const OS = runtime.GOOS
 
 var (
+    debug   bool
+    verbose = 0
+    src     = ""
+    dst     = os.Getenv("HOME")
+    act     string
+)
+
+var (
     ignoreDirs = []string{".git", "lib"}
     onlyDirs   []string
     // ignore = []string{"*.tpl", ".pkg"}
     // roles []string
 )
 
+var opts = []interface{} {
+    &Header{Text: "General Options"},
+    &Option{ShortName: "h", Name: "help", Description: "Displays this help", defaultval: false, parse: func(opt *optarg.Option) {
+        usage(0)
+    }},
+    &Option{ShortName: "d", Name: "debug", Description: "Check mode", defaultval: false, parse: func(opt *optarg.Option) {
+        debug = opt.Bool()
+    }},
+    &Option{ShortName: "v", Name: "verbose", Description: "Print more (default to: 0)", defaultval: false, parse: func(opt *optarg.Option) {
+        if opt.Bool() {
+            verbose += 1
+        // } else if int? {
+        //     verbose += opt.Int()
+        }
+    }},
+
+    &Header{Text: "Paths"},
+    &Option{ShortName: "s", Name: "source", Description: "Source directory", defaultval: src, parse: func(opt *optarg.Option) {
+        src = opt.String()
+    }},
+    &Option{ShortName: "t", Name: "target", Description: "Target directory", defaultval: dst, parse: func(opt *optarg.Option) {
+        dst = opt.String()
+    }},
+    // optarg.Add("i", "ignore", "Exclude path", ignore)
+
+    &Header{Text: "Actions (default to: install)"},
+    &Option{ShortName: "I", Name: "Install", Description: "", defaultval: true, parse: func(opt *optarg.Option) {
+        act = opt.String()
+    }},
+    &Option{ShortName: "R", Name: "remove", Description: "", defaultval: false, parse: func(opt *optarg.Option) {
+        act = opt.String()
+    }},
+}
+
 func main() {
-    onlyDirs = OptArg()
+    onlyDirs = getOpts(opts)
+    if act == "" {
+        usage(1, "missing action: install or remove")
+    }
+    if !exists(src) {
+        usage(1)
+    }
+    if !exists(dst) {
+        usage(1)
+    }
     // err := filepath.Walk(path, walkFn)
     err := walk(src)
     if err != nil {
@@ -29,13 +81,13 @@ func main() {
     }
 }
 
-type VisitFunc func(string, os.FileInfo, int) error
+type VisitFunc func(string, os.FileInfo, string) error
 
 func walk(dir string) error {
     if !filepath.IsAbs(dir) {
         return fmt.Errorf("%s is not absolute", dir)
     }
-    return WalkDir(dir, check, visit)
+    return walkDir(dir, check, visit)
     // if err != nil {
     //     return err
     // }
@@ -84,32 +136,31 @@ func visit(dir string, info os.FileInfo, err error) error {
     //     fmt.Println(dir, "READ PKG")
     // }
     // d := filepath.Join(dir, info.Name())
-    err = explore(dir, found, 0)
+    err = explore(dir, found, filepath.Base(dir))
     if err != nil {
         return err
     }
     return nil
 }
 
-func explore(dir string, fn VisitFunc, n int) error {
+func explore(dir string, fn VisitFunc, role string) error {
     if verbose > 0 {
-        fmt.Printf("DIR %d  %s\n", n, dir)
+        fmt.Printf("DIR %v\n", dir)
     }
-    d, err := ReadDir(dir)
+    d, err := readDir(dir)
     if err != nil {
         return err
     }
     FILES:
     for _, fi := range d {
-        switch ext(fi.Name()) {
+        switch filepath.Ext(fi.Name()) {
         case ".tpl", ".pkg":
             continue FILES
         }
         if fi.IsDir() { // TODO check empty?
-            n++
-            explore(filepath.Join(dir, fi.Name()), fn, n)
+            explore(filepath.Join(dir, fi.Name()), fn, role)
         } else {
-            err = fn(dir, fi, n)
+            err = fn(dir, fi, role)
             if err != nil {
                 return err
             }
@@ -118,9 +169,13 @@ func explore(dir string, fn VisitFunc, n int) error {
     return nil
 }
 
-func found(dir string, fi os.FileInfo, n int) error {
-    s := filepath.Join(dir, fi.Name())
-    t := strings.Replace(s, basePath(dir, n), dst, 1)
+func found(path string, fi os.FileInfo, role string) error {
+    name := fi.Name()
+    s := filepath.Join(path, name)
+    // t := strings.Replace(s, basePath(dir, n), dst, 1)
+    base := filepath.Join(src, role)
+    t := filepath.Join(strings.Replace(path, base, dst, 1), name)
+    // fmt.Println(filepath.Join(src, base))
     if verbose > 0 {
         // fmt.Printf("%s <- %s\n", t, fi.Name())
         fmt.Printf("ln -s %s %s\n", s, t)

@@ -11,7 +11,9 @@ var (
     NotFound = fmt.Errorf("no such file or directory")
 )
 
-func ReadDir(dirname string) ([]os.FileInfo, error) {
+type walkFunc func(path string, info os.FileInfo, err error) error
+
+func readDir(dirname string) ([]os.FileInfo, error) {
     f, err := os.Open(dirname)
     if err != nil {
         return nil, err
@@ -26,10 +28,8 @@ func ReadDir(dirname string) ([]os.FileInfo, error) {
     return paths, nil
 }
 
-type WalkFunc func(path string, info os.FileInfo, err error) error
-
-func WalkDir(path string, walkFn ...WalkFunc) error {
-    p, err := ReadDir(path)
+func walkDir(path string, walkFn ...walkFunc) error {
+    p, err := readDir(path)
     if err != nil {
         return err
     }

@@ -4,17 +4,45 @@ import (
     "fmt"
     "os"
     "github.com/jteeuwen/go-pkg-optarg"
+    // "reflect"
 )
 
-var (
-    debug   bool
-    verbose = 0
-    src     = ""
-    dst     = os.Getenv("HOME")
-    act     string
-)
+// type OptArg interface {
+//     Key() string
+//     // Parse(interface{})
+//     Set()
+//     Type() string
+// }
 
-func Usage(e int, msg ...interface{}) {
+type Option struct {
+    Name        string
+    ShortName   string
+    Description string
+    defaultval  interface{}
+    value       string
+    // SetOpt(shortname string, name string, description string, defaultvalue interface{})
+    // *optarg.Option
+    parse       func(*optarg.Option)
+}
+func (o *Option) Key() string {
+    return o.ShortName
+}
+func (o *Option) Set() {
+    optarg.Add(o.ShortName, o.Name, o.Description, o.defaultval)
+}
+
+func (o *Option) Parse(opt *optarg.Option) {
+    o.parse(opt)
+}
+
+type Header struct {
+    Text string
+}
+func (o *Header) Set() {
+    optarg.Header(o.Text)
+}
+
+func usage(e int, msg ...interface{}) {
     if len(msg) > 0 {
         fmt.Fprintf(os.Stderr, "%s\n", msg...)
         // fmt.Fprintf(os.Stderr, "%s\n", optarg.UsageInfo)
@@ -23,54 +51,51 @@ func Usage(e int, msg ...interface{}) {
     os.Exit(e)
 }
 
-func OptArg() []string {
+func setOpts(opts []interface{}) map[string]interface{} {
+    var oMap = make(map[string]interface{})
+    for _, o := range opts {
+        // fmt.Println(reflect.TypeOf(o))
+        switch o.(type) {
+            case *Option:
+                opt := o.(*Option)
+                oMap[opt.ShortName] = opt
+                opt.Set()
+            case *Header:
+                opt := o.(*Header)
+                opt.Set()
+            // default:
+            //     fmt.Println(o)
+        }
+    }
+    return oMap
+}
+
+func getOpts(opts []interface{}) []string {
     optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options] [roles...]", os.Args[0]) // <action> hdvstIR
     optarg.HeaderFmt = "\n%s:"
 
-    optarg.Header("General options")
-    optarg.Add("h", "help", "Displays this help", false)
-    optarg.Add("d", "debug", "Check mode", false)
-    optarg.Add("v", "verbose", "Print more (default to: 0)", false)
-
-    optarg.Header("Paths")
-    optarg.Add("s", "source", "Source directory", src)
-    optarg.Add("t", "target", "Target directory", dst)
-    // optarg.Add("i", "ignore", "Exclude path", ignore)
-
-    optarg.Header("Actions")
-    optarg.Add("I", "install", "", true)
-    optarg.Add("R", "remove", "", false)
-
+    oMap := setOpts(opts)
     for opt := range optarg.Parse() {
-        switch opt.ShortName {
-        case "h":
-            Usage(0)
-        case "d":
-            debug = opt.Bool()
-        case "v":
-            if opt.Bool() {
-                verbose += 1
-            }
+        oMap[opt.ShortName].(*Option).Parse(opt)
+        // switch opt.ShortName {
+        // case "h":
+        //     usage(0)
+        // case "d":
+        //     debug = opt.Bool()
+        // case "v":
+        //     if opt.Bool() {
+        //         verbose += 1
+        //     }
 
-        case "s":
-            src = opt.String()
-            // Prompt?
-        case "t":
-            dst = opt.String()
+        // case "s":
+        //     src = opt.String()
+        //     // Prompt?
+        // case "t":
+        //     dst = opt.String()
 
-        case "I", "R":
-            act = opt.String()
-        }
-    }
-
-    if act == "" {
-        Usage(1, "missing action: install or remove")
-    }
-    if !exists(src) {
-        Usage(1)
-    }
-    if !exists(dst) {
-        Usage(1)
+        // case "I", "R":
+        //     act = opt.String()
+        // }
     }
 
     return optarg.Remainder
