@@ -22,82 +22,86 @@ var (
 )
 
 var (
+    // fileMap    = make(map[string]File)
     ignoreDirs = []string{".git", "lib"}
     onlyDirs   []string
     // ignore = []string{"*.tpl", ".pkg"}
     // roles []string
 )
 
-var opts = []interface{} {
-    &Header{Text: "General Options"},
-    &Option{
-        ShortName: "h",
-        Name: "help",
-        Description: "Displays this help",
-        defaultval: false,
-        parse: func(opt *optarg.Option) {
-            usage(0)
-    }},
-    &Option{
-        ShortName: "d",
-        Name: "debug",
-        Description: "Check mode",
-        defaultval: false,
-        parse: func(opt *optarg.Option) {
-            debug = opt.Bool()
-    }},
-    &Option{
-        ShortName: "v",
-        Name: "verbose",
-        Description: "Print more (default to: 0)",
-        defaultval: false,
-        parse: func(opt *optarg.Option) {
-            if opt.Bool() {
-                verbose += 1
-                // verbose += opt.Int()
-            }
-    }},
-
-    &Header{Text: "Paths"},
-    &Option{
-        ShortName: "s",
-        Name: "source",
-        Description: "Source directory",
-        defaultval: src,
-        parse: func(opt *optarg.Option) {
-            src = opt.String()
-    }},
-    &Option{
-        ShortName: "t",
-        Name: "target",
-        Description: "Target directory",
-        defaultval: dst,
-        parse: func(opt *optarg.Option) {
-            dst = opt.String()
-    }},
-    // optarg.Add("i", "ignore", "Exclude path", ignore)
-
-    &Header{Text: "Actions (default to: install)"},
-    &Option{
-        ShortName: "I",
-        Name: "Install",
-        Description: "",
-        defaultval: true,
-        parse: func(opt *optarg.Option) {
-            act = opt.String()
-    }},
-    &Option{
-        ShortName: "R",
-        Name: "remove",
-        Description: "",
-        defaultval: false,
-        parse: func(opt *optarg.Option) {
-            act = opt.String()
-    }},
-}
+// type File struct {
+//     name string
+//     dest string
+// }
 
 func main() {
-    onlyDirs = getOpts(opts)
+    onlyDirs = getOpts([]interface{} {
+        &Header{Text: "General Options"},
+        &Option{
+            ShortName: "h",
+            Name: "help",
+            Description: "Displays this help",
+            defaultval: false,
+            parse: func(opt *optarg.Option) {
+                usage(0)
+        }},
+        &Option{
+            ShortName: "d",
+            Name: "debug",
+            Description: "Check mode",
+            defaultval: false,
+            parse: func(opt *optarg.Option) {
+                debug = opt.Bool()
+        }},
+        &Option{
+            ShortName: "v",
+            Name: "verbose",
+            Description: "Print more (default to: 0)",
+            defaultval: false,
+            parse: func(opt *optarg.Option) {
+                if opt.Bool() {
+                    verbose += 1
+                    // verbose += opt.Int()
+                }
+        }},
+
+        &Header{Text: "Paths"},
+        &Option{
+            ShortName: "s",
+            Name: "source",
+            Description: "Source directory",
+            defaultval: src,
+            parse: func(opt *optarg.Option) {
+                src = opt.String()
+        }},
+        &Option{
+            ShortName: "t",
+            Name: "target",
+            Description: "Target directory",
+            defaultval: dst,
+            parse: func(opt *optarg.Option) {
+                dst = opt.String()
+        }},
+        // optarg.Add("i", "ignore", "Exclude path", ignore)
+
+        &Header{Text: "Actions (default to: install)"},
+        &Option{
+            ShortName: "I",
+            Name: "Install",
+            Description: "",
+            defaultval: true,
+            parse: func(opt *optarg.Option) {
+                act = opt.String()
+        }},
+        &Option{
+            ShortName: "R",
+            Name: "remove",
+            Description: "",
+            defaultval: false,
+            parse: func(opt *optarg.Option) {
+                act = opt.String()
+        }},
+    })
     if act == "" {
         usage(1, "missing action: install or remove")
     }
@@ -114,8 +118,6 @@ func main() {
         // os.Exit(1)
     }
 }
-
-type VisitFunc func(string, os.FileInfo, string) error
 
 func walk(dir string) error {
     if !filepath.IsAbs(dir) {
@@ -177,13 +179,25 @@ func visit(dir string, info os.FileInfo, err error) error {
     return nil
 }
 
-func explore(dir string, fn VisitFunc, role string) error {
+type VisitFunc func(string, os.FileInfo, string) error
+
+func explore(path string, fn VisitFunc, role string) error {
     if verbose > 0 {
-        fmt.Printf("DIR %v\n", dir)
+        fmt.Printf("DIR %v\n", path)
     }
-    d, err := readDir(dir)
+    d, err := readDir(path)
     if err != nil {
         return err
+    }
+    if len(d) == 0 {
+        fi, err := os.Stat(path)
+        if err != nil {
+            return err
+        }
+        err = fn(path, fi, role)
+        if err != nil {
+            return err
+        }
     }
     FILES:
     for _, fi := range d {
@@ -191,10 +205,10 @@ func explore(dir string, fn VisitFunc, role string) error {
         case ".tpl", ".pkg":
             continue FILES
         }
-        if fi.IsDir() { // TODO check empty?
-            explore(filepath.Join(dir, fi.Name()), fn, role)
+        if fi.IsDir() {
+            explore(filepath.Join(path, fi.Name()), fn, role)
         } else {
-            err = fn(dir, fi, role)
+            err = fn(path, fi, role)
             if err != nil {
                 return err
             }
@@ -210,10 +224,23 @@ func found(path string, fi os.FileInfo, role string) error {
     base := filepath.Join(src, role)
     t := filepath.Join(strings.Replace(path, base, dst, 1), name)
     // fmt.Println(filepath.Join(src, base))
+    _, err := os.Stat(t)
+    if err != nil {
+        if !os.IsNotExist(err) {
+            return err
+        }
+    } else {
+        fmt.Println(fmt.Errorf("stat %s: file or directory already exists", t))
+    }
     if verbose > 0 {
         // fmt.Printf("%s <- %s\n", t, fi.Name())
         fmt.Printf("ln -s %s %s\n", s, t)
     }
+
+    // targetFile := File{name: name, dest: t}
+    // fileMap[s]
+
+
     // err := os.Symlink(s, t)
     // if err != nil {
     //     return err
