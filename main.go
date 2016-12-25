@@ -189,16 +189,16 @@ func explore(path string, fn VisitFunc, role string) error {
     if err != nil {
         return err
     }
-    if len(d) == 0 {
-        fi, err := os.Stat(path)
-        if err != nil {
-            return err
-        }
-        err = fn(path, fi, role)
-        if err != nil {
-            return err
-        }
-    }
+    // if len(d) == 0 {
+    //     fi, err := os.Stat(path)
+    //     if err != nil {
+    //         return err
+    //     }
+    //     err = fn(path, fi, role)
+    //     if err != nil {
+    //         return err
+    //     }
+    // }
     FILES:
     for _, fi := range d {
         switch filepath.Ext(fi.Name()) {
