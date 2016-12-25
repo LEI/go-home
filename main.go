@@ -40,17 +40,17 @@ func main() {
     } else if len(visited) == 0 {
         warn("%s: no such role", src)
     }
-    for role, files := range visited {
-        if verbose > 1 { fmt.Println("ROLE", strings.ToUpper(role)) }
-        for _, f := range files {
+    for name, role := range visited {
+        if verbose > 1 { fmt.Println("ROLE", strings.ToUpper(name)) }
+        for _, f := range role.Files {
             if f.IsLinked() {
-                fmt.Printf("%s: %s already linked!\n", role+"\\"+f.Name)
+                fmt.Printf("%s: %s already linked!\n", name+"\\"+f.Name)
             } else if f.IsLink() {
-                fmt.Printf("%s: %s already linked to %s\n", role+"\\"+f.Name, f.Dest, f.Link)
+                fmt.Printf("%s: %s already linked to %s\n", name+"\\"+f.Name, f.Dest, f.Link)
             } else if f.Exists() {
-                fmt.Printf("%s: %s already exists\n", role+"\\"+f.Name, f.Dest)
+                fmt.Printf("%s: %s already exists\n", name+"\\"+f.Name, f.Dest)
             } else {
-                fmt.Printf("%s: %s does not exists!\n", role+"\\"+f.Name, f.Dest)
+                fmt.Printf("%s: %s does not exists!\n", name+"\\"+f.Name, f.Dest)
             }
         }
     }
@@ -128,6 +128,7 @@ func visit(dir string, info os.FileInfo, err error) error {
     // if verbose > 0 {
     //     fmt.Printf("ROLE: %v\n", role)
     // }
+    visited[role] = Role{Name: role, Files: make(map[string]File)}
     err = explore(dir, found, role)
     if err != nil {
         return err
@@ -176,10 +177,6 @@ func found(path string, fi os.FileInfo, role string) error {
     // t := strings.Replace(s, basePath(dir, n), dst, 1)
     base := filepath.Join(src, role)
     t := filepath.Join(strings.Replace(path, base, dst, 1), name)
-    if visited[role] == nil {
-        visited[role] = Role{Name: role, Files: make(map[string]File)}
-        // visited[role] = make(map[string]File)
-    }
     visited[role].Files[s] = File{Name: name, Dest: t}
         // Link: link,
         // Mode: int64(tStat.Mode()),
