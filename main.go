@@ -4,104 +4,21 @@ import (
     "fmt"
     "log"
     "os"
-    "github.com/jteeuwen/go-pkg-optarg"
     "path/filepath"
     // "regexp"
-    "runtime"
     "strings"
 )
 
-const OS = runtime.GOOS
-
 var (
-    debug   bool
-    verbose = 0
-    src     = ""
-    dst     = os.Getenv("HOME")
-    act     string
-)
-
-var (
-    // fileMap    = make(map[string]File)
+    visited    = make(map[string]map[string]File)
     ignoreDirs = []string{".git", "lib"}
     onlyDirs   []string
     // ignore = []string{"*.tpl", ".pkg"}
     // roles []string
 )
 
-// type File struct {
-//     name string
-//     dest string
-// }
-
 func main() {
-    onlyDirs = getOpts([]interface{} {
-        &Header{Text: "General Options"},
-        &Option{
-            ShortName: "h",
-            Name: "help",
-            Description: "Displays this help",
-            defaultval: false,
-            parse: func(opt *optarg.Option) {
-                usage(0)
-        }},
-        &Option{
-            ShortName: "d",
-            Name: "debug",
-            Description: "Check mode",
-            defaultval: false,
-            parse: func(opt *optarg.Option) {
-                debug = opt.Bool()
-        }},
-        &Option{
-            ShortName: "v",
-            Name: "verbose",
-            Description: "Print more (default to: 0)",
-            defaultval: false,
-            parse: func(opt *optarg.Option) {
-                if opt.Bool() {
-                    verbose += 1
-                    // verbose += opt.Int()
-                }
-        }},
-
-        &Header{Text: "Paths"},
-        &Option{
-            ShortName: "s",
-            Name: "source",
-            Description: "Source directory",
-            defaultval: src,
-            parse: func(opt *optarg.Option) {
-                src = opt.String()
-        }},
-        &Option{
-            ShortName: "t",
-            Name: "target",
-            Description: "Target directory",
-            defaultval: dst,
-            parse: func(opt *optarg.Option) {
-                dst = opt.String()
-        }},
-        // optarg.Add("i", "ignore", "Exclude path", ignore)
-
-        &Header{Text: "Actions (default to: install)"},
-        &Option{
-            ShortName: "I",
-            Name: "Install",
-            Description: "",
-            defaultval: true,
-            parse: func(opt *optarg.Option) {
-                act = opt.String()
-        }},
-        &Option{
-            ShortName: "R",
-            Name: "remove",
-            Description: "",
-            defaultval: false,
-            parse: func(opt *optarg.Option) {
-                act = opt.String()
-        }},
-    })
+    onlyDirs = getOpts(opts)
     if act == "" {
         usage(1, "missing action: install or remove")
     }
@@ -114,9 +31,43 @@ func main() {
     // err := filepath.Walk(path, walkFn)
     err := walk(src)
     if err != nil {
-        log.Fatal(err)
+        logFatal(err)
         // os.Exit(1)
     }
+    if len(onlyDirs) > 0 && len(visited) == 0 {
+        warn("%s/{%v}: no such role", src, strings.Join(onlyDirs, ","))
+    } else if len(visited) == 0 {
+        warn("%s: no such role", src)
+    }
+    for role, files := range visited {
+        if verbose > 1 { fmt.Println("ROLE", strings.ToUpper(role)) }
+        for _, f := range files {
+            if f.IsLinked() {
+                fmt.Printf("%s: %s already linked!\n", role+"\\"+f.Name)
+            } else if f.IsLink() {
+                fmt.Printf("%s: %s already linked to %s\n", role+"\\"+f.Name, f.Dest, f.Link)
+            } else if f.Exists() {
+                fmt.Printf("%s: %s already exists\n", role+"\\"+f.Name, f.Dest)
+            } else {
+                fmt.Printf("%s: %s does not exists!\n", role+"\\"+f.Name, f.Dest)
+            }
+        }
+    }
+}
+
+func logErr(err error, replace ...string) error {
+    msg := err.Error()
+    // if len(replace) == 0 {
+    //     replace = []string{"stat "}
+    // }
+    for _, r := range replace {
+        msg = strings.Replace(msg, r, os.Args[0]+": ", 1)
+    }
+    return fmt.Errorf("%s\n", msg)
+}
+
+func logFatal(err error, replace ...string) {
+    log.Fatal(logErr(err, replace...))
 }
 
 func warn(f string, args ...interface{}) {
@@ -172,11 +123,11 @@ func visit(dir string, info os.FileInfo, err error) error {
     if err != nil {
         return err
     }
-    // if exists(filepath.Join(dir, ".pkg")) {
-    //     fmt.Println(dir, "READ PKG")
+    role := filepath.Base(dir)
+    // if verbose > 0 {
+    //     fmt.Printf("ROLE: %v\n", role)
     // }
-    // d := filepath.Join(dir, info.Name())
-    err = explore(dir, found, filepath.Base(dir))
+    err = explore(dir, found, role)
     if err != nil {
         return err
     }
@@ -186,9 +137,6 @@ func visit(dir string, info os.FileInfo, err error) error {
 type VisitFunc func(string, os.FileInfo, string) error
 
 func explore(path string, fn VisitFunc, role string) error {
-    if verbose > 0 {
-        fmt.Printf("DIR %v\n", path)
-    }
     d, err := readDir(path)
     if err != nil {
         return err
@@ -227,19 +175,40 @@ func found(path string, fi os.FileInfo, role string) error {
     // t := strings.Replace(s, basePath(dir, n), dst, 1)
     base := filepath.Join(src, role)
     t := filepath.Join(strings.Replace(path, base, dst, 1), name)
-    // fmt.Println(filepath.Join(src, base))
-    _, err := os.Stat(t)
-    if err != nil {
-        if !os.IsNotExist(err) {
-            return err
-        }
-    } else {
-        warn("stat %s: file or directory already exists", t)
+    if visited[role] == nil {
+        visited[role] = make(map[string]File)
     }
-    if verbose > 0 {
-        // fmt.Printf("%s <- %s\n", t, fi.Name())
-        fmt.Printf("ln -s %s %s\n", s, t)
-    }
+    visited[role][s] = File{Name: name, Dest: t}
+        // Link: link,
+        // Mode: int64(tStat.Mode()),
+        // Stat: tStat,
+    // tStat, err := os.Stat(t)
+    // if err != nil && !os.IsNotExist(err) {
+    //     return logErr(err, "stat ")
+    // }
+    // if err == nil {
+    //     // if link == t {
+    //     //     owned = true
+    //     // }
+    // }
+    // if tStat != nil {
+    //     fmt.Printf(">> %v\n", link)
+    // }
+
+    // link := ""
+    // if tStat != nil {
+    //     link, err := filepath.EvalSymlinks(t)
+    //     if err != nil {
+    //         return err
+    //     }
+    //     if t != link {
+    //         warn("%s: %s already linked to %s", os.Args[0], t, link)
+    //     } else if t == link {
+    //         warn("%s: %s already owned", os.Args[0], t)
+    //     } else {
+    //         warn("%s: %s already exists", os.Args[0], t)
+    //     }
+    // }
 
     // targetFile := File{name: name, dest: t}
     // fileMap[s]

@@ -33,14 +33,12 @@ func (o *Header) Set() {
 }
 
 func getOpts(opts []interface{}) []string {
-    optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options] [roles...]", os.Args[0]) // <action> hdvstIR
     optarg.HeaderFmt = "\n%s:"
-
+    optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options] [roles...]", os.Args[0]) // <action> hdvstIR
     oMap := setOpts(opts)
     for opt := range optarg.Parse() {
         oMap[opt.ShortName].(*Option).Parse(opt)
     }
-
     return optarg.Remainder
 }
 
