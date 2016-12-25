@@ -4,7 +4,7 @@ import (
     "fmt"
     "log"
     "os"
-    // "path/filepath"
+    "path/filepath"
     // "regexp"
     "runtime"
     "strings"
@@ -29,12 +29,25 @@ func main() {
     }
 }
 
-func found(dir string, fi os.FileInfo, lvl int) {
+type VisitFunc func(string, os.FileInfo, int) error
+
+func found(dir string, fi os.FileInfo, lvl int) error {
+    // fmt.Printf("%v\n", filepath.SplitList(dir))
+
+    // base := dir
+    // for i := 0; i < lvl; i++ {
+    //     base, _ := filepath.Split(base)
+    //     if base == "" {
+    //         return fmt.Errorf("invalid base path")
+    //     }
+    // }
+    // fmt.Println(base, lvl)
+
     s := join(dir, fi.Name())
     // t := join(path.Split(dir), ..., fi.Name())
-    // t := strings.Replace(s, base, dst, 1)
+    t := strings.Replace(s, base, dst, 1)
     // t := strings.Replace(s, "/*$", "", -1)
-    t := join(dst, fi.Name())
+    // t := join(dst, fi.Name())
     if verbose > 0 {
         // fmt.Printf("%s <- %s\n", t, fi.Name())
         fmt.Printf("ln -s %s %s\n", s, t)
@@ -44,9 +57,17 @@ func found(dir string, fi os.FileInfo, lvl int) {
     //     return err
     // }
     // realpath, err := filepath.EvalSymlinks(t)
+    return nil
+}
+
+func trimPath(p string, n int) (string, error) {
+    return p, nil
 }
 
 func walk(dir string) error {
+    if !filepath.IsAbs(dir) {
+        return fmt.Errorf("%s is not absolute", dir)
+    }
     return WalkDir(dir, check, visit)
     // if err != nil {
     //     return err
@@ -88,22 +109,22 @@ func check(dir string, info os.FileInfo, err error) error {
     return nil
 }
 
-func visit(dir string, info os.FileInfo, e error) error {
-    if e != nil {
-        return e
+func visit(dir string, info os.FileInfo, err error) error {
+    if err != nil {
+        return err
     }
     // if exists(join(dir, ".pkg")) {
     //     fmt.Println(dir, "READ PKG")
     // }
     // d := join(dir, info.Name())
-    err := explore(dir, found, 0)
+    err = explore(dir, found, 0)
     if err != nil {
         return err
     }
     return nil
 }
 
-func explore(dir string, fn func(string, os.FileInfo, int), lvl int) error {
+func explore(dir string, fn VisitFunc, lvl int) error {
     if verbose > 0 {
         fmt.Printf("DIR %d  %s\n", lvl, dir)
     }
@@ -117,11 +138,14 @@ func explore(dir string, fn func(string, os.FileInfo, int), lvl int) error {
         case ".tpl", ".pkg":
             continue FILES
         }
-        if fi.IsDir() {
+        if fi.IsDir() { // TODO check empty?
             lvl++
             explore(join(dir, fi.Name()), fn, lvl)
         } else {
-            fn(dir, fi, lvl)
+            err = fn(dir, fi, lvl)
+            if err != nil {
+                return err
+            }
         }
     }
     return nil
