@@ -2,12 +2,41 @@ package main
 
 import (
     "fmt"
+    "os"
+    "path/filepath"
 )
 
 type Role struct {
     Name string
-    Files map[string]File
+    Path string
+    Files []File
+    // Files map[string]File
     // Platform string
+}
+
+type VisitFunc func(string, os.FileInfo, *Role) error
+
+func (r *Role) Explore(path string, fn VisitFunc) error {
+    d, err := readDir(path)
+    if err != nil {
+        return err
+    }
+    FILES:
+    for _, fi := range d {
+        switch filepath.Ext(fi.Name()) {
+        case ".tpl", ".pkg":
+            continue FILES
+        }
+        if fi.IsDir() {
+            r.Explore(filepath.Join(path, fi.Name()), fn)
+        } else {
+            err = fn(path, fi, r)
+            if err != nil {
+                return err
+            }
+        }
+    }
+    return nil
 }
 
 func (r *Role) Play() error {

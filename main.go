@@ -2,7 +2,6 @@ package main
 
 import (
     "fmt"
-    "log"
     "os"
     "path/filepath"
     // "regexp"
@@ -49,25 +48,6 @@ func main() {
     }
 }
 
-func newErr(err error, replace ...string) error {
-    msg := err.Error()
-    // if len(replace) == 0 {
-    //     replace = []string{"stat "}
-    // }
-    for _, r := range replace {
-        msg = strings.Replace(msg, r, os.Args[0]+": ", 1)
-    }
-    return fmt.Errorf("%s\n", msg)
-}
-
-func logFatal(err error, replace ...string) {
-    log.Fatal(newErr(err, replace...))
-}
-
-func logErr(f string, args ...interface{}) {
-    fmt.Fprintf(os.Stderr, f+"\n", args...)
-}
-
 func walk(dir string) error {
     if !filepath.IsAbs(dir) {
         return fmt.Errorf("%s is not absolute", dir)
@@ -109,53 +89,32 @@ func check(dir string, info os.FileInfo, err error) error {
     return nil
 }
 
-func visit(dir string, info os.FileInfo, err error) error {
+func visit(path string, info os.FileInfo, err error) error {
     if err != nil {
         return err
     }
-    role := filepath.Base(dir)
+    role := Role{
+        Name: filepath.Base(path),
+        Path: path,
+        Files: []File{},
+    }
     // if verbose > 0 {
     //     fmt.Printf("ROLE: %v\n", role)
     // }
-    visited[role] = Role{Name: role, Files: make(map[string]File)}
-    err = explore(dir, found, role)
+    // err = explore(dir, found, role)
+    err = role.Explore(path, found)
     if err != nil {
         return err
     }
+    visited[role.Name] = role
     return nil
 }
 
-type VisitFunc func(string, os.FileInfo, string) error
-
-func explore(path string, fn VisitFunc, role string) error {
-    d, err := readDir(path)
-    if err != nil {
-        return err
-    }
-    FILES:
-    for _, fi := range d {
-        switch filepath.Ext(fi.Name()) {
-        case ".tpl", ".pkg":
-            continue FILES
-        }
-        if fi.IsDir() {
-            explore(filepath.Join(path, fi.Name()), fn, role)
-        } else {
-            err = fn(path, fi, role)
-            if err != nil {
-                return err
-            }
-        }
-    }
-    return nil
-}
-
-func found(path string, fi os.FileInfo, role string) error {
-    base := filepath.Join(src, role)
-    name := fi.Name()
-    s := filepath.Join(path, name)
-    t := strings.Replace(path, base, dst, 1)
-    t = filepath.Join(t, name)
-    visited[role].Files[s] = File{Name: name, Dest: t}
+func found(path string, fi os.FileInfo, role *Role) error {
+    role.Files = append(role.Files, File{
+        Name: fi.Name(),
+        Dest: filepath.Join(strings.Replace(path, role.Path, dst, 1), fi.Name()),
+        Source: filepath.Join(path, fi.Name()),
+    })
     return nil
 }

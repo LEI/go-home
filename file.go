@@ -11,6 +11,7 @@ type File struct {
     Link string
     Mode int64
     Stat os.FileInfo
+    Source string
     didStat bool
     didRead bool
     exists bool
