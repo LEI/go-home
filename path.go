@@ -20,7 +20,3 @@ func exists(path string) bool {
     }
     return true
 }
-
-func join(paths ...string) string {
-    return filepath.Join(paths...)
-}

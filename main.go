@@ -31,23 +31,16 @@ func main() {
 
 type VisitFunc func(string, os.FileInfo, int) error
 
+func basePath(path string, n int) string {
+    sep := string(os.PathSeparator) // strconv.Itoa()
+    p := strings.Split(path, sep)
+    n = len(p) - n
+    return strings.Join(p[:n], sep)
+}
+
 func found(dir string, fi os.FileInfo, lvl int) error {
-    // fmt.Printf("%v\n", filepath.SplitList(dir))
-
-    // base := dir
-    // for i := 0; i < lvl; i++ {
-    //     base, _ := filepath.Split(base)
-    //     // strings.Replace(base, "/*$", "", -1)
-    //     if base == "" {
-    //         return fmt.Errorf("invalid base path")
-    //     }
-    // }
-    // fmt.Println(base, lvl)
-
-    s := join(dir, fi.Name())
-    // t := join(path.Split(dir), ..., fi.Name())
-    // t := strings.Replace(s, base, dst, 1)
-    t := join(dst, fi.Name())
+    s := filepath.Join(dir, fi.Name())
+    t := strings.Replace(s, basePath(dir, lvl), dst, 1)
     if verbose > 0 {
         // fmt.Printf("%s <- %s\n", t, fi.Name())
         fmt.Printf("ln -s %s %s\n", s, t)
@@ -113,10 +106,10 @@ func visit(dir string, info os.FileInfo, err error) error {
     if err != nil {
         return err
     }
-    // if exists(join(dir, ".pkg")) {
+    // if exists(filepath.Join(dir, ".pkg")) {
     //     fmt.Println(dir, "READ PKG")
     // }
-    // d := join(dir, info.Name())
+    // d := filepath.Join(dir, info.Name())
     err = explore(dir, found, 0)
     if err != nil {
         return err
@@ -140,7 +133,7 @@ func explore(dir string, fn VisitFunc, lvl int) error {
         }
         if fi.IsDir() { // TODO check empty?
             lvl++
-            explore(join(dir, fi.Name()), fn, lvl)
+            explore(filepath.Join(dir, fi.Name()), fn, lvl)
         } else {
             err = fn(dir, fi, lvl)
             if err != nil {

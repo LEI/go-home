@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "os"
+    "path/filepath"
 )
 
 var (
@@ -35,7 +36,7 @@ func WalkDir(path string, walkFn ...WalkFunc) error {
 
     DIRS:
     for _, fi := range p {
-        root := join(path, fi.Name())
+        root := filepath.Join(path, fi.Name())
         // for _; fn := range walkFn { // unexpected range, expecting expression
         for i := 0; i < len(walkFn); i++ {
             err := walkFn[i](root, fi, nil)
