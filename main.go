@@ -2,16 +2,43 @@ package main
 
 import (
     "fmt"
+    "github.com/BurntSushi/toml"
     "os"
-    "path/filepath"
     "packages"
-    // "regexp"
+    "path/filepath"
     "strings"
+    // "regexp"
 )
 
+type Config struct {
+    Os       map[string]Os
+    Packages map[string]Pkg
+}
+
+type Os struct {
+    List []string
+    // Android []string
+    // Darwin  []string
+    // Debian  []string
+}
+
+type Pkg struct {
+    List []string
+    Vars []string
+    Os   map[string]Os
+    Tpl  map[string]Tpl
+    // OsPkg
+}
+
+type Tpl struct {
+    Prompt string
+}
+
 var (
+    cfg        Config
+    cfgFile    = ".gofiles"
     // visited    = make(map[string]map[string]packages.File)
-    visited    = make(map[string]packages.Role)
+    visited    []packages.Role
     ignoreDirs = []string{".git", "lib"}
     onlyDirs   []string
     // ignore = []string{"*.tpl", ".pkg"}
@@ -29,6 +56,25 @@ func main() {
     // case "remove"
     case "":
         usage(1, "missing action: install or remove")
+    }
+    cfgPath := filepath.Join(src, cfgFile)
+    if exists(cfgPath) {
+        if _, err := toml.DecodeFile(cfgPath, &cfg); err != nil {
+            logFatal(err)
+        }
+        // fmt.Printf("%v\n", cfg)
+        for name, os := range cfg.Os {
+            if name == OS {
+                fmt.Printf("%s packages = %v\n", name, os.List)
+            }
+        }
+        for name, pkg := range cfg.Packages {
+            fmt.Printf("role %s\n", name)
+            fmt.Printf("packages = %v\n", pkg.List)
+            for variable, prompt := range pkg.Tpl {
+                fmt.Printf("%v = %v\n", variable, prompt)
+            }
+        }
     }
     // err := filepath.Walk(path, walkFn)
     err := walk(src)
