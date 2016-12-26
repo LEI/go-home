@@ -41,8 +41,8 @@ func main() {
     } else if len(visited) == 0 {
         logErr("%s: no such role", src)
     }
-    for name, role := range visited {
-        if verbose > 1 { fmt.Println("ROLE", strings.ToUpper(name)) }
+    for _, role := range visited {
+        if verbose > 1 { fmt.Println("ROLE", strings.ToUpper(role.Name)) }
         switch act {
         case "install":
             err := role.Sync()
@@ -108,7 +108,7 @@ func visit(path string, info os.FileInfo, err error) error {
     if err != nil {
         return err
     }
-    visited[role.Name] = role
+    visited = append(visited, role)
     return nil
 }
 
