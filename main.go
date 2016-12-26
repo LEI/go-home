@@ -10,30 +10,6 @@ import (
     // "regexp"
 )
 
-type Config struct {
-    Os       map[string]Os
-    Packages map[string]Pkg
-}
-
-type Os struct {
-    List []string
-    // Android []string
-    // Darwin  []string
-    // Debian  []string
-}
-
-type Pkg struct {
-    List []string
-    Vars []string
-    Os   map[string]Os
-    Tpl  map[string]Tpl
-    // OsPkg
-}
-
-type Tpl struct {
-    Prompt string
-}
-
 var (
     cfg        Config
     cfgFile    = ".gofiles"
@@ -63,12 +39,12 @@ func main() {
             logFatal(err)
         }
         // fmt.Printf("%v\n", cfg)
-        for name, os := range cfg.Os {
+        for name, os := range cfg.OsPkg {
             if name == OS {
                 fmt.Printf("%s packages = %v\n", name, os.List)
             }
         }
-        for name, pkg := range cfg.Packages {
+        for name, pkg := range cfg.RolePkg {
             fmt.Printf("role %s\n", name)
             fmt.Printf("packages = %v\n", pkg.List)
             for variable, prompt := range pkg.Tpl {
