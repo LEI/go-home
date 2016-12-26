@@ -6,7 +6,7 @@ type Config struct {
 }
 
 type Pkg struct {
-    List []string
+    List []interface{}
 }
 
 type OsPkg struct {
