@@ -17,6 +17,7 @@ type Option struct {
     // SetOpt(shortname string, name string, description string, defaultvalue interface{})
     // *optarg.Option
 }
+
 func (o *Option) Set() {
     optarg.Add(o.ShortName, o.Name, o.Description, o.defaultval)
 }
@@ -32,18 +33,18 @@ func (o *Header) Set() {
     optarg.Header(o.Text)
 }
 
-func getOpts(opts []interface{}) []string {
-    optarg.HeaderFmt = "\n%s:"
-    optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options] [roles...]", os.Args[0]) // <action> hdvstIR
-    oMap := setOpts(opts)
+type Options map[string]interface{}
+
+func parseOpts(oMap Options) []string {
+    // oMap := setOpts(opts)
     for opt := range optarg.Parse() {
         oMap[opt.ShortName].(*Option).Parse(opt)
     }
     return optarg.Remainder
 }
 
-func setOpts(opts []interface{}) map[string]interface{} {
-    var oMap = make(map[string]interface{})
+func setOpts(opts []interface{}) Options {
+    var oMap = make(Options)
     for _, o := range opts {
         switch o.(type) {
             case *Option:

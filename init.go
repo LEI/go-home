@@ -1,6 +1,7 @@
 package main
 
 import (
+    "fmt"
     "log"
     "os"
     "github.com/jteeuwen/go-pkg-optarg"
@@ -73,3 +74,13 @@ var opts = []interface{} {
                 if opt.Bool() { act = "remove" }
         }},
     }
+
+func init() {
+    optarg.HeaderFmt = "\n%s:"
+    optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options] [roles...]", os.Args[0]) // <action> hdvstIR
+
+    optsMap := setOpts(opts)
+    remainder := parseOpts(optsMap)
+
+    onlyDirs = remainder
+}

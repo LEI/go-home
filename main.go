@@ -2,7 +2,6 @@ package main
 
 import (
     "fmt"
-    "github.com/BurntSushi/toml"
     "log"
     "os"
     "packages"
@@ -12,8 +11,6 @@ import (
 )
 
 var (
-    cfg        Config
-    cfgFile    = ".gofiles"
     // visited    = make(map[string]map[string]packages.File)
     visited    []packages.Role
     ignoreDirs = []string{".git", "lib"}
@@ -23,7 +20,7 @@ var (
 )
 
 func main() {
-    onlyDirs = getOpts(opts)
+    // onlyDirs = getOpts(opts)
     switch false {
     case exists(src), exists(dst):
         usage(1)
@@ -34,27 +31,15 @@ func main() {
     case "":
         usage(1, "missing action: install or remove")
     }
-    cfgPath := filepath.Join(src, cfgFile)
-    if exists(cfgPath) {
-        if _, err := toml.DecodeFile(cfgPath, &cfg); err != nil {
-            log.Fatal(ErrorReplace(err))
-        }
-        // fmt.Printf("%v\n", cfg)
-        for name, os := range cfg.OsPkg {
-            if name == OS {
-                fmt.Printf("%s packages = %v\n", name, os.List)
-            }
-        }
-        for name, pkg := range cfg.RolePkg {
-            fmt.Printf("role %s\n", name)
-            fmt.Printf("packages = %v\n", pkg.List)
-            for variable, prompt := range pkg.Tpl {
-                fmt.Printf("%v = %v\n", variable, prompt)
-            }
-        }
+    cfg, err := getConfig(filepath.Join(src, ".gofiles"))
+    if err != nil {
+        log.Fatal(err)
+    }
+    if verbose > 1 {
+        fmt.Printf("%+v\n", cfg)
     }
     // err := filepath.Walk(path, walkFn)
-    err := walk(src)
+    err = walk(src)
     if err != nil {
         log.Fatal(ErrorReplace(err))
         // os.Exit(1)
