@@ -2,24 +2,27 @@ package main
 
 import (
     "fmt"
-    "log"
+    // "log"
     "os"
     "strings"
 )
 
-func newErr(err error, replace ...string) error {
-    msg := err.Error()
+// type Error interface {
+//     // Error() string
+//     String() string
+// }
+
+// fmt.Fprintf(os.Stderr, f+"\n", args...)
+// log.Fatal()
+
+func ErrorReplace(err error, replace ...string) error {
+    return NewError(err.Error(), replace...)
+}
+
+func NewError(err string, replace ...string) error {
     // if len(replace) == 0 { replace = []string{"stat "} }
     for _, r := range replace {
-        msg = strings.Replace(msg, r, os.Args[0]+": ", 1)
+        err = strings.Replace(err, r, os.Args[0]+": ", 1)
     }
-    return fmt.Errorf("%s\n", msg)
-}
-
-func logErr(f string, args ...interface{}) {
-    fmt.Fprintf(os.Stderr, f+"\n", args...)
-}
-
-func logFatal(err error, replace ...string) {
-    log.Fatal(newErr(err, replace...))
+    return fmt.Errorf("%s\n", err)
 }

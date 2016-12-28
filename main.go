@@ -3,6 +3,7 @@ package main
 import (
     "fmt"
     "github.com/BurntSushi/toml"
+    "log"
     "os"
     "packages"
     "path/filepath"
@@ -36,7 +37,7 @@ func main() {
     cfgPath := filepath.Join(src, cfgFile)
     if exists(cfgPath) {
         if _, err := toml.DecodeFile(cfgPath, &cfg); err != nil {
-            logFatal(err)
+            log.Fatal(ErrorReplace(err))
         }
         // fmt.Printf("%v\n", cfg)
         for name, os := range cfg.OsPkg {
@@ -55,13 +56,13 @@ func main() {
     // err := filepath.Walk(path, walkFn)
     err := walk(src)
     if err != nil {
-        logFatal(err)
+        log.Fatal(ErrorReplace(err))
         // os.Exit(1)
     }
     if len(onlyDirs) > 0 && len(visited) == 0 {
-        logErr("%s/{%v}: no such role", src, strings.Join(onlyDirs, ","))
+        fmt.Fprintf(os.Stderr, "%s/{%v}: no such role\n", src, strings.Join(onlyDirs, ","))
     } else if len(visited) == 0 {
-        logErr("%s: no such role", src)
+        fmt.Fprintf(os.Stderr, "%s: no role found\n", src)
     }
     for _, role := range visited {
         if verbose > 1 { fmt.Println("ROLE", strings.ToUpper(role.Name)) }
@@ -69,7 +70,7 @@ func main() {
         case "install":
             err := role.Sync()
             if err != nil {
-                logFatal(err)
+                log.Fatal(ErrorReplace(err))
             }
         }
     }
