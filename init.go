@@ -6,17 +6,6 @@ import (
     "os"
     "github.com/jteeuwen/go-pkg-optarg"
     // "regexp"
-    "runtime"
-)
-
-const OS = runtime.GOOS
-
-var (
-    debug   bool
-    verbose = 0
-    src     = ""
-    dst     = os.Getenv("HOME")
-    act     string
 )
 
 var opts = []interface{} {
@@ -80,7 +69,5 @@ func init() {
     optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options] [roles...]", os.Args[0]) // <action> hdvstIR
 
     optsMap := setOpts(opts)
-    remainder := parseOpts(optsMap)
-
-    onlyDirs = remainder
+    onlyDirs = parseOpts(optsMap) // remainder
 }

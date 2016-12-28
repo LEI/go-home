@@ -8,9 +8,17 @@ import (
     "path/filepath"
     "strings"
     // "regexp"
+    "runtime"
 )
 
+const OS = runtime.GOOS
+
 var (
+    debug      bool
+    verbose    = 0
+    dst        = os.Getenv("HOME")
+    src        = dst+"/.dotfiles"
+    act        string
     // visited    = make(map[string]map[string]packages.File)
     visited    []packages.Role
     ignoreDirs = []string{".git", "lib"}

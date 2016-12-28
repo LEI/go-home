@@ -36,9 +36,9 @@ type Var struct {
 
 func getConfig(path string) (Config, error) {
     var cfg Config
-    if !exists(path) {
-        return cfg, fmt.Errorf("%s no such file", path)
-    }
+    // if !exists(path) {
+    //     return cfg, fmt.Errorf("%s no such file", path)
+    // }
     if _, err := toml.DecodeFile(path, &cfg); err != nil {
         return cfg, ErrorReplace(err)
     }
