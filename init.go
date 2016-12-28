@@ -26,8 +26,7 @@ var opts = []interface{} {
             defaultval: false,
             parse: func(opt *optarg.Option) {
                 usage(0)
-            }
-        },
+        }},
         &Option{
             ShortName: "d",
             Name: "debug",
@@ -35,8 +34,7 @@ var opts = []interface{} {
             defaultval: false,
             parse: func(opt *optarg.Option) {
                 debug = opt.Bool()
-            }
-        },
+        }},
         &Option{
             ShortName: "v",
             Name: "verbose",
@@ -47,8 +45,7 @@ var opts = []interface{} {
                     verbose += 1
                     // verbose += opt.Int()
                 }
-            }
-        },
+        }},
 
         &Header{Text: "Paths"},
         &Option{
@@ -58,8 +55,7 @@ var opts = []interface{} {
             defaultval: src,
             parse: func(opt *optarg.Option) {
                 src = opt.String()
-            }
-        },
+        }},
         &Option{
             ShortName: "t",
             Name: "target",
@@ -67,8 +63,7 @@ var opts = []interface{} {
             defaultval: dst,
             parse: func(opt *optarg.Option) {
                 dst = opt.String()
-            }
-        },
+        }},
         // optarg.Add("i", "ignore", "Exclude path", ignore)
 
         &Header{Text: "Actions (default to: install)"},
@@ -79,8 +74,7 @@ var opts = []interface{} {
             defaultval: true,
             parse: func(opt *optarg.Option) {
                 if opt.Bool() { act = "install" }
-            }
-        },
+        }},
         &Option{
             ShortName: "R",
             Name: "remove",
@@ -88,6 +82,5 @@ var opts = []interface{} {
             defaultval: false,
             parse: func(opt *optarg.Option) {
                 if opt.Bool() { act = "remove" }
-            }
-        },
+        }},
     }
