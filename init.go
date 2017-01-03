@@ -69,5 +69,5 @@ func init() {
     optarg.UsageInfo = fmt.Sprintf("Usage:\n\n  %s [options] [roles...]", os.Args[0]) // <action> hdvstIR
 
     optsMap := setOpts(opts)
-    onlyDirs = parseOpts(optsMap) // remainder
+    remainder = parseOpts(optsMap) // remainder
 }

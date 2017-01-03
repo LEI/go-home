@@ -38,6 +38,7 @@ type Options map[string]interface{}
 func parseOpts(oMap Options) []string {
     // oMap := setOpts(opts)
     for opt := range optarg.Parse() {
+        // fmt.Println("parse", opt.ShortName)
         oMap[opt.ShortName].(*Option).Parse(opt)
     }
     return optarg.Remainder

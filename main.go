@@ -20,15 +20,15 @@ var (
     src        = dst+"/.dotfiles"
     act        string
     // visited    = make(map[string]map[string]packages.File)
-    visited    []packages.Role
+    cfgPath    = filepath.Join(src, ".gofiles")
     ignoreDirs = []string{".git", "lib"}
-    onlyDirs   []string
+    remainder   []string
+    visited    []packages.Role
     // ignore = []string{"*.tpl", ".pkg"}
     // roles []string
 )
 
 func main() {
-    // onlyDirs = getOpts(opts)
     switch false {
     case exists(src), exists(dst):
         usage(1)
@@ -39,21 +39,23 @@ func main() {
     case "":
         usage(1, "missing action: install or remove")
     }
-    cfg, err := getConfig(filepath.Join(src, ".gofiles"))
-    if err != nil {
-        log.Fatal(err)
-    }
-    if verbose > 1 {
-        fmt.Printf("%+v\n", cfg)
+    if exists(cfgPath) {
+        cfg, err := getConfig(cfgPath)
+        if err != nil {
+            log.Fatal(err)
+        }
+        if verbose > 1 {
+            fmt.Printf("%+v\n", cfg)
+        }
     }
     // err := filepath.Walk(path, walkFn)
-    err = walk(src)
+    err := walk(src)
     if err != nil {
         log.Fatal(ErrorReplace(err))
         // os.Exit(1)
     }
-    if len(onlyDirs) > 0 && len(visited) == 0 {
-        fmt.Fprintf(os.Stderr, "%s/{%v}: no such role\n", src, strings.Join(onlyDirs, ","))
+    if len(remainder) > 0 && len(visited) == 0 {
+        fmt.Fprintf(os.Stderr, "%s/{%v}: no such role\n", src, strings.Join(remainder, ","))
     } else if len(visited) == 0 {
         fmt.Fprintf(os.Stderr, "%s: no role found\n", src)
     }
@@ -102,7 +104,7 @@ func check(dir string, info os.FileInfo, err error) error {
         }
         return Skip
     }
-    for _, i := range onlyDirs {
+    for _, i := range remainder {
         if name != i {
             return Skip
         }
